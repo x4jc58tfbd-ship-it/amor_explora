@@ -1,41 +1,86 @@
 import streamlit as st
-from datetime import date, timedelta
+import json
+import os
+from datetime import date, datetime
 
 st.set_page_config(
     page_title="ExploreAmore | Rhodes",
     page_icon="🌊",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
 )
 
 # =========================================================
-# SESSION
+# EXPLOREAMORE
+# Rhodes family package holiday platform
 # =========================================================
+
+DATA_FILE = "exploreamore_data.json"
+
+DEFAULT_DATA = {
+    "packages": [
+        {
+            "id": 1,
+            "title": "Lindos Family Escape",
+            "location": "Lindos, Rhodes",
+            "nights": 7,
+            "departure_airport": "Manchester",
+            "start_date": "2027-05-12",
+            "end_date": "2027-05-19",
+            "villa": "Villa Athena",
+            "price": 2450,
+            "spaces": 3,
+            "flights": True,
+            "transfers": True,
+            "breakfast": True,
+            "support_hours": 20,
+            "activities": "Beach morning, sensory-friendly Rhodes experience, family activity day",
+            "description": "A complete supported Rhodes holiday designed around the whole family.",
+            "image": "https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&w=1400&q=80",
+            "featured": True,
+            "published": True
+        }
+    ],
+    "enquiries": [],
+    "reviews": [
+        {
+            "name": "Demo family",
+            "rating": 5,
+            "text": "The idea of having the holiday adapted around our child would make travelling feel possible again.",
+            "approved": True
+        }
+    ]
+}
+
+
+def load_data():
+    if os.path.exists(DATA_FILE):
+        try:
+            with open(DATA_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    save_data(DEFAULT_DATA)
+    return DEFAULT_DATA.copy()
+
+
+def save_data(data):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
+if "data" not in st.session_state:
+    st.session_state.data = load_data()
 
 if "page" not in st.session_state:
     st.session_state.page = "Home"
 
-if "reviews" not in st.session_state:
-    st.session_state.reviews = [
-        {
-            "name": "Sarah & Leo",
-            "rating": 5,
-            "text": "For once I didn't feel like I had to explain my child everywhere we went. We could just enjoy being a family."
-        },
-        {
-            "name": "Emma",
-            "rating": 5,
-            "text": "Having activities built around what my son actually enjoys made such a difference."
-        },
-        {
-            "name": "The Williams Family",
-            "rating": 5,
-            "text": "Rhodes was beautiful and having some proper parent time made the holiday feel like a holiday for all of us."
-        }
-    ]
+if "selected_package" not in st.session_state:
+    st.session_state.selected_package = None
 
-if "enquiry_sent" not in st.session_state:
-    st.session_state.enquiry_sent = False
+if "admin_logged_in" not in st.session_state:
+    st.session_state.admin_logged_in = False
 
 
 # =========================================================
@@ -45,279 +90,133 @@ if "enquiry_sent" not in st.session_state:
 st.markdown("""
 <style>
 
-/* ---------- GLOBAL ---------- */
+[data-testid="stHeader"] {
+    background: rgba(255,255,255,.88);
+}
 
-.stApp {
+[data-testid="stAppViewContainer"] {
     background:
-        radial-gradient(circle at 90% 0%, #dff8f5 0%, transparent 28%),
-        linear-gradient(180deg, #fffdf8 0%, #ffffff 45%, #f7fbfa 100%);
-    color: #173536;
+        radial-gradient(circle at 90% 10%, #dff9f6 0, transparent 28%),
+        linear-gradient(180deg,#fffdf8 0%,#f7fcfb 100%);
 }
 
 .block-container {
-    max-width: 1050px;
+    max-width: 1100px;
     padding-top: 1.2rem;
-    padding-bottom: 7rem;
+    padding-bottom: 5rem;
 }
 
-#MainMenu {
-    visibility: hidden;
+h1,h2,h3 {
+    color:#103f3d;
+    letter-spacing:-0.03em;
 }
 
-footer {
-    visibility: hidden;
+.logo {
+    font-size:2.6rem;
+    font-weight:900;
+    letter-spacing:-.07em;
+    color:#103f3d;
+    margin-bottom:0;
 }
 
-header {
-    background: rgba(255,255,255,0.82) !important;
+.logo span {
+    color:#23aaa5;
 }
 
-/* ---------- TYPOGRAPHY ---------- */
-
-h1, h2, h3 {
-    letter-spacing: -0.02em;
+.eyebrow {
+    color:#218e8a;
+    font-size:.82rem;
+    font-weight:800;
+    letter-spacing:.18em;
+    text-transform:uppercase;
 }
-
-.small-label {
-    text-transform: uppercase;
-    letter-spacing: 0.16em;
-    font-size: 12px;
-    font-weight: 800;
-    color: #168b89;
-}
-
-.muted {
-    color: #647878;
-}
-
-/* ---------- BRAND ---------- */
-
-.brand-wrap {
-    text-align: center;
-    padding: 12px 0 18px 0;
-}
-
-.brand {
-    font-size: 38px;
-    line-height: 1;
-    font-weight: 900;
-    color: #123f40;
-    letter-spacing: -0.05em;
-}
-
-.brand span {
-    color: #18a6a2;
-}
-
-.brand-sub {
-    margin-top: 7px;
-    font-size: 13px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: #6d8584;
-    font-weight: 700;
-}
-
-/* ---------- HERO ---------- */
 
 .hero {
-    min-height: 470px;
-    border-radius: 32px;
-    padding: 46px 38px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    color: white;
+    min-height:540px;
+    border-radius:34px;
+    padding:45px;
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+    color:white;
     background:
-        linear-gradient(
-            180deg,
-            rgba(4,30,34,0.08) 0%,
-            rgba(4,30,34,0.22) 40%,
-            rgba(4,30,34,0.86) 100%
-        ),
-        url("https://images.unsplash.com/photo-1533105079780-92b9be482077?auto=format&fit=crop&w=1600&q=85");
-    background-size: cover;
-    background-position: center;
-    box-shadow: 0 18px 50px rgba(18,63,64,0.18);
-}
-
-.hero-pill {
-    display: inline-block;
-    width: fit-content;
-    padding: 8px 13px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.18);
-    backdrop-filter: blur(8px);
-    font-size: 13px;
-    font-weight: 800;
-    margin-bottom: 13px;
+        linear-gradient(0deg,rgba(5,35,34,.85),rgba(5,35,34,.05)),
+        url("https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?auto=format&fit=crop&w=1600&q=85");
+    background-size:cover;
+    background-position:center;
+    box-shadow:0 20px 60px rgba(12,65,63,.15);
 }
 
 .hero h1 {
-    font-size: 54px;
-    max-width: 700px;
-    margin: 0;
-    line-height: 1.02;
-    color: white;
+    color:white;
+    font-size:4rem;
+    max-width:720px;
+    line-height:.98;
+    margin-bottom:20px;
 }
 
 .hero p {
-    max-width: 650px;
-    font-size: 18px;
-    margin-top: 15px;
-    margin-bottom: 0;
-    color: rgba(255,255,255,0.94);
+    font-size:1.2rem;
+    max-width:720px;
 }
 
-/* ---------- CARDS ---------- */
-
-.card {
-    background: rgba(255,255,255,0.96);
-    border: 1px solid #e8f0ef;
-    border-radius: 24px;
-    overflow: hidden;
-    box-shadow: 0 9px 30px rgba(26,64,65,0.08);
-    margin-bottom: 14px;
+.package-card {
+    background:white;
+    border:1px solid #dce9e7;
+    border-radius:28px;
+    padding:22px;
+    margin-bottom:20px;
+    box-shadow:0 12px 35px rgba(12,65,63,.07);
 }
 
-.card-body {
-    padding: 19px;
-}
-
-.card h3 {
-    margin: 0 0 6px 0;
-    color: #173f40;
-}
-
-.card p {
-    color: #637978;
-}
-
-.villa-img {
-    width: 100%;
-    height: 215px;
-    object-fit: cover;
+.package-image {
+    width:100%;
+    height:300px;
+    object-fit:cover;
+    border-radius:22px;
 }
 
 .price {
-    font-size: 25px;
-    font-weight: 900;
-    color: #123f40;
+    font-size:2rem;
+    font-weight:900;
+    color:#103f3d;
 }
 
-.tag {
-    display: inline-block;
-    margin: 3px 3px 3px 0;
-    padding: 6px 10px;
-    border-radius: 999px;
-    background: #e9f8f6;
-    color: #147c79;
-    font-size: 12px;
-    font-weight: 800;
+.pill {
+    display:inline-block;
+    padding:7px 12px;
+    margin:3px;
+    background:#e6f7f5;
+    color:#126d69;
+    border-radius:999px;
+    font-size:.82rem;
+    font-weight:700;
 }
 
-.deal {
-    padding: 22px;
-    border-radius: 24px;
-    background: linear-gradient(135deg, #173f40, #176b69);
-    color: white;
-    box-shadow: 0 12px 32px rgba(18,63,64,.18);
-    margin-bottom: 16px;
+.notice {
+    background:#fff3e7;
+    border:1px solid #ffd9b5;
+    padding:18px;
+    border-radius:18px;
 }
 
-.deal h3 {
-    color: white;
-    margin-bottom: 5px;
+.admin-box {
+    background:#103f3d;
+    color:white;
+    padding:25px;
+    border-radius:24px;
 }
-
-.deal p {
-    color: #e7ffff;
-}
-
-/* ---------- SUPPORT ---------- */
-
-.support-box {
-    border-radius: 28px;
-    padding: 26px;
-    background: #fff3e9;
-    border: 1px solid #ffe1ca;
-    margin: 20px 0;
-}
-
-.support-box h2 {
-    color: #563e2f;
-}
-
-/* ---------- REVIEW ---------- */
-
-.review {
-    background: white;
-    border-radius: 20px;
-    padding: 19px;
-    border: 1px solid #e7eeee;
-    margin-bottom: 12px;
-}
-
-.stars {
-    color: #d99a00;
-    font-size: 18px;
-}
-
-/* ---------- BUTTONS ---------- */
 
 div.stButton > button {
-    width: 100%;
-    border-radius: 14px;
-    min-height: 48px;
-    font-weight: 800;
-    border: 1px solid #dce9e8;
+    border-radius:999px;
+    min-height:48px;
+    font-weight:750;
+    border:1px solid #cddfdd;
 }
 
 div.stButton > button[kind="primary"] {
-    background: #123f40;
-    color: white;
-}
-
-/* ---------- NAV ---------- */
-
-.nav-title {
-    font-size: 12px;
-    color: #6c8180;
-    text-align: center;
-    margin-bottom: 4px;
-}
-
-/* ---------- MOBILE ---------- */
-
-@media (max-width: 700px) {
-
-    .block-container {
-        padding-left: 15px;
-        padding-right: 15px;
-        padding-top: .8rem;
-    }
-
-    .brand {
-        font-size: 32px;
-    }
-
-    .hero {
-        min-height: 440px;
-        padding: 28px 22px;
-        border-radius: 25px;
-    }
-
-    .hero h1 {
-        font-size: 39px;
-    }
-
-    .hero p {
-        font-size: 16px;
-    }
-
-    .villa-img {
-        height: 190px;
-    }
+    background:#0f5b57;
+    border-color:#0f5b57;
 }
 
 </style>
@@ -328,87 +227,70 @@ div.stButton > button[kind="primary"] {
 # HELPERS
 # =========================================================
 
-def navigate(page):
+def go(page):
     st.session_state.page = page
+    st.rerun()
 
 
-def header():
-    st.markdown("""
-    <div class="brand-wrap">
-        <div class="brand">Explore<span>Amore</span></div>
-        <div class="brand-sub">Rhodes • Holidays built around your family</div>
-    </div>
-    """, unsafe_allow_html=True)
+def get_package(package_id):
+    for package in st.session_state.data["packages"]:
+        if package["id"] == package_id:
+            return package
+    return None
 
 
-def navigation():
-    st.markdown("---")
-    st.markdown('<div class="nav-title">EXPLORE</div>', unsafe_allow_html=True)
+def money(value):
+    return f"£{int(value):,}"
 
-    cols = st.columns(5)
 
-    with cols[0]:
-        if st.button("🏠\nHome"):
-            navigate("Home")
-            st.rerun()
+def package_badges(p):
+    badges = []
 
-    with cols[1]:
-        if st.button("🏡\nVillas"):
-            navigate("Villas")
-            st.rerun()
+    if p.get("flights"):
+        badges.append("✈️ Flights")
+    if p.get("transfers"):
+        badges.append("🚐 Transfers")
+    if p.get("breakfast"):
+        badges.append("🍳 Breakfast")
 
-    with cols[2]:
-        if st.button("❤️\nFamily"):
-            navigate("Family")
-            st.rerun()
-
-    with cols[3]:
-        if st.button("⭐\nCommunity"):
-            navigate("Community")
-            st.rerun()
-
-    with cols[4]:
-        if st.button("🔐\nNicola"):
-            navigate("Admin")
-            st.rerun()
+    badges.append(f"❤️ {p.get('support_hours', 0)} hrs support")
+    return badges
 
 
 # =========================================================
-# DATA
+# HEADER
 # =========================================================
 
-villas = [
-    {
-        "name": "Villa Amore",
-        "area": "Lindos",
-        "image": "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&w=1200&q=85",
-        "price": "£1,895",
-        "sleeps": "Sleeps 6",
-        "pool": "Private pool",
-        "feature": "Quiet setting",
-        "description": "A peaceful family villa with private outdoor space and room to reset away from busy resort areas."
-    },
-    {
-        "name": "Aegean Family Retreat",
-        "area": "Pefkos",
-        "image": "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=1200&q=85",
-        "price": "£2,240",
-        "sleeps": "Sleeps 8",
-        "pool": "Private pool",
-        "feature": "Family favourite",
-        "description": "Spacious accommodation close to the coast with flexible spaces for play, downtime and family evenings."
-    },
-    {
-        "name": "Blue Haven",
-        "area": "Kolymbia",
-        "image": "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&w=1200&q=85",
-        "price": "£1,675",
-        "sleeps": "Sleeps 5",
-        "pool": "Pool access",
-        "feature": "Calmer resort",
-        "description": "A relaxed base for families wanting beaches, activities and quieter moments within easy reach."
-    }
-]
+st.markdown(
+    '<div class="logo">Explore<span>Amore</span></div>',
+    unsafe_allow_html=True
+)
+
+st.caption("RHODES • FAMILY HOLIDAYS BUILT AROUND YOUR FAMILY")
+
+nav_cols = st.columns(5)
+
+with nav_cols[0]:
+    if st.button("🏠 Home", use_container_width=True):
+        go("Home")
+
+with nav_cols[1]:
+    if st.button("☀️ Packages", use_container_width=True):
+        go("Packages")
+
+with nav_cols[2]:
+    if st.button("🏡 Villas", use_container_width=True):
+        go("Villas")
+
+with nav_cols[3]:
+    if st.button("⭐ Community", use_container_width=True):
+        go("Community")
+
+with nav_cols[4]:
+    if st.button("🔐 Nicola", use_container_width=True):
+        go("Admin")
+
+st.markdown("---")
 
 
 # =========================================================
@@ -419,366 +301,219 @@ def home_page():
 
     st.markdown("""
     <div class="hero">
-        <div class="hero-pill">☀️ RHODES • GREECE</div>
+        <div class="eyebrow" style="color:#9ef2eb;">RHODES • GREECE</div>
         <h1>A holiday for the whole family.</h1>
         <p>
-        Beautiful Rhodes stays, flights, transfers and experiences —
-        with personalised support built around your child's individual needs.
+        Complete Rhodes package holidays with flights, accommodation,
+        transfers and personalised family support — organised together,
+        not left for parents to piece together themselves.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
     st.write("")
 
-    if st.button("✨ Build our Rhodes holiday", type="primary"):
-        navigate("Family")
-        st.rerun()
+    if st.button(
+        "✨ Explore Rhodes packages",
+        type="primary",
+        use_container_width=True
+    ):
+        go("Packages")
 
-    st.markdown("### Everything in one holiday")
+    st.write("")
+    st.header("Everything organised together")
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
 
     with c1:
-        st.info("✈️ **Flights**\n\nFind suitable travel from UK airports.")
-        st.info("🏡 **Hand-picked stays**\n\nFamily villas and accommodation across Rhodes.")
-        st.info("🎨 **Personalised activities**\n\nBuilt around interests, comfort and confidence.")
+        st.subheader("✈️ Complete travel")
+        st.write(
+            "Selected packages can include return flights from the UK, "
+            "Rhodes accommodation and airport transfers."
+        )
 
     with c2:
-        st.info("🚐 **Transfers**\n\nMake arrival and departure easier.")
-        st.info("🍳 **Food & catering**\n\nBreakfast and dietary preferences planned ahead.")
-        st.info("❤️ **Parent time**\n\nSupported sessions giving parents space to relax.")
-
-    st.markdown("""
-    <div class="support-box">
-        <div class="small-label">THE EXPLOREAMORE DIFFERENCE</div>
-        <h2>We get to know the child, not just the booking.</h2>
-        <p>
-        Every autistic child is different. Families can tell us about
-        communication, routines, sensory preferences, favourite activities,
-        food, transitions and what helps their child feel comfortable.
-        </p>
-        <p>
-        That information helps the human ExploreAmore team shape activities
-        and the holiday experience around the individual family.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("## 🔥 Current Rhodes deals")
-
-    st.markdown("""
-    <div class="deal">
-        <div class="small-label" style="color:#9fe5df;">FEATURED FAMILY ESCAPE</div>
-        <h3>7 nights • Lindos</h3>
-        <p>Villa stay + transfers + breakfast welcome pack + personalised family activity plan.</p>
-        <b>From £1,895 per family*</b>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if st.button("See Rhodes villas →"):
-        navigate("Villas")
-        st.rerun()
-
-    st.caption("*Demo pricing while ExploreAmore is being developed. Live supplier pricing will be connected later.")
-
-
-# =========================================================
-# VILLAS
-# =========================================================
-
-def villas_page():
-
-    st.markdown('<div class="small-label">STAY YOUR WAY</div>', unsafe_allow_html=True)
-    st.title("Rhodes villas 🏡")
-
-    st.write(
-        "Explore family stays across Rhodes. Nicola can eventually add, "
-        "remove and update these from her own dashboard."
-    )
-
-    area = st.selectbox(
-        "Area",
-        ["All Rhodes", "Lindos", "Pefkos", "Kolymbia"]
-    )
-
-    for villa in villas:
-
-        if area != "All Rhodes" and villa["area"] != area:
-            continue
-
-        st.markdown(f"""
-        <div class="card">
-            <img class="villa-img" src="{villa['image']}">
-            <div class="card-body">
-                <div class="small-label">{villa['area'].upper()} • RHODES</div>
-                <h3>{villa['name']}</h3>
-                <p>{villa['description']}</p>
-
-                <span class="tag">👨‍👩‍👧 {villa['sleeps']}</span>
-                <span class="tag">🏊 {villa['pool']}</span>
-                <span class="tag">❤️ {villa['feature']}</span>
-
-                <p class="price">From {villa['price']}</p>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-            if st.button(
-                "Check availability",
-                key=f"availability_{villa['name']}"
-            ):
-                st.session_state.selected_villa = villa["name"]
-                navigate("Availability")
-                st.rerun()
-
-        with col2:
-            if st.button(
-                "Ask about this villa",
-                key=f"ask_{villa['name']}"
-            ):
-                st.session_state.selected_villa = villa["name"]
-                navigate("Enquiry")
-                st.rerun()
-
-
-# =========================================================
-# AVAILABILITY
-# =========================================================
-
-def availability_page():
-
-    villa = st.session_state.get("selected_villa", "ExploreAmore Villa")
-
-    st.markdown('<div class="small-label">PLAN YOUR STAY</div>', unsafe_allow_html=True)
-    st.title("Availability 📅")
-    st.subheader(villa)
-
-    st.info(
-        "This is the booking-calendar experience. "
-        "Live villa inventory will be connected to a booking database/supplier later."
-    )
-
-    check_in = st.date_input(
-        "Check in",
-        value=date.today() + timedelta(days=60),
-        min_value=date.today()
-    )
-
-    nights = st.selectbox(
-        "Nights",
-        [5, 7, 10, 14],
-        index=1
-    )
-
-    adults = st.number_input(
-        "Adults",
-        min_value=1,
-        max_value=8,
-        value=2
-    )
-
-    children = st.number_input(
-        "Children",
-        min_value=1,
-        max_value=6,
-        value=1
-    )
-
-    check_out = check_in + timedelta(days=nights)
-
-    st.success(
-        f"Selected stay: {check_in.strftime('%d %b %Y')} → "
-        f"{check_out.strftime('%d %b %Y')} • {nights} nights"
-    )
-
-    if st.button("Continue with this holiday", type="primary"):
-        st.session_state.travel_dates = (
-            check_in,
-            check_out,
-            adults,
-            children
+        st.subheader("❤️ Individual support")
+        st.write(
+            "Families tell ExploreAmore about routines, communication, "
+            "sensory preferences, interests and support requirements."
         )
-        navigate("Family")
-        st.rerun()
+
+    with c3:
+        st.subheader("🌴 Parent time")
+        st.write(
+            "Supported sessions and planned activities can give parents "
+            "time to relax while their child enjoys their holiday too."
+        )
+
+    st.write("")
+    st.header("🔥 Current Rhodes packages")
+
+    published = [
+        p for p in st.session_state.data["packages"]
+        if p.get("published")
+    ]
+
+    if not published:
+        st.info("New Rhodes packages are being prepared.")
+
+    for p in published[:3]:
+        package_preview(p)
 
 
 # =========================================================
-# FAMILY PROFILE
+# PACKAGE PREVIEW
 # =========================================================
 
-def family_page():
+def package_preview(p):
 
-    st.markdown('<div class="small-label">YOUR FAMILY</div>', unsafe_allow_html=True)
-    st.title("Tell us about your child ❤️")
+    st.markdown('<div class="package-card">', unsafe_allow_html=True)
+
+    if p.get("image"):
+        st.image(p["image"], use_container_width=True)
+
+    if p.get("featured"):
+        st.markdown("**✨ FEATURED FAMILY ESCAPE**")
+
+    st.subheader(p["title"])
+    st.write(f"📍 {p['location']}")
+    st.write(
+        f"**{p['nights']} nights • "
+        f"{p['start_date']} → {p['end_date']}**"
+    )
 
     st.write(
-        "Not a medical form. Just the things that can help us understand "
-        "what makes your child comfortable, confident and happy."
+        f"✈️ Departing **{p['departure_airport']}**  \n"
+        f"🏡 **{p['villa']}**"
     )
 
-    child_name = st.text_input(
-        "Child's first name or nickname"
+    for badge in package_badges(p):
+        st.markdown(
+            f'<span class="pill">{badge}</span>',
+            unsafe_allow_html=True
+        )
+
+    st.write("")
+    st.markdown(
+        f'<div class="price">From {money(p["price"])} per family*</div>',
+        unsafe_allow_html=True
     )
 
-    age = st.number_input(
-        "Age",
-        min_value=2,
-        max_value=17,
-        value=8
-    )
+    st.caption(f"Current availability: {p['spaces']} package(s)")
 
-    communication = st.multiselect(
-        "Communication",
-        [
-            "Speaks independently",
-            "Uses short phrases",
-            "Non-speaking",
-            "AAC / communication device",
-            "Visual communication helps",
-            "Needs extra processing time"
-        ]
-    )
+    if st.button(
+        "View complete package →",
+        key=f"view_{p['id']}",
+        use_container_width=True
+    ):
+        st.session_state.selected_package = p["id"]
+        go("Package")
 
-    sensory = st.multiselect(
-        "Sensory preferences",
-        [
-            "Prefers quieter places",
-            "Sensitive to loud noise",
-            "Sensitive to bright lights",
-            "Doesn't like large crowds",
-            "Needs movement / active play",
-            "Benefits from sensory breaks",
-            "No particular sensory needs"
-        ]
-    )
-
-    interests = st.text_area(
-        "What do they LOVE?",
-        placeholder="Swimming, dinosaurs, football, animals, drawing, gaming..."
-    )
-
-    difficult = st.text_area(
-        "Anything that can make things difficult?",
-        placeholder="Unexpected changes, queues, loud music, unfamiliar food..."
-    )
-
-    food = st.text_area(
-        "Food, allergies or eating preferences",
-        placeholder="Favourite breakfast, safe foods, allergies, textures to avoid..."
-    )
-
-    support = st.multiselect(
-        "What would help your family?",
-        [
-            "Supported activity sessions",
-            "1-to-1 support",
-            "Quiet activities",
-            "Visual holiday schedule",
-            "Help with transitions",
-            "Parent respite time",
-            "Family activities together",
-            "Flexible meal planning"
-        ]
-    )
-
-    parent_time = st.slider(
-        "How much parent free-time would you ideally like during the week?",
-        min_value=0,
-        max_value=20,
-        value=6,
-        step=1
-    )
-
-    if st.button("✨ Create our holiday profile", type="primary"):
-
-        st.session_state.family_profile = {
-            "name": child_name or "Your child",
-            "age": age,
-            "communication": communication,
-            "sensory": sensory,
-            "interests": interests,
-            "difficult": difficult,
-            "food": food,
-            "support": support,
-            "parent_time": parent_time
-        }
-
-        navigate("Plan")
-        st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =========================================================
-# PERSONALISED PLAN
+# PACKAGES
 # =========================================================
 
-def plan_page():
+def packages_page():
 
-    profile = st.session_state.get("family_profile")
+    st.markdown(
+        '<div class="eyebrow">EXPLOREAMORE HOLIDAYS</div>',
+        unsafe_allow_html=True
+    )
 
-    if not profile:
-        st.warning("Create your family profile first.")
-        if st.button("Create profile"):
-            navigate("Family")
-            st.rerun()
+    st.title("Rhodes package holidays")
+
+    st.write(
+        "These are complete ExploreAmore holiday packages. "
+        "You choose the package — we organise the components shown."
+    )
+
+    published = [
+        p for p in st.session_state.data["packages"]
+        if p.get("published")
+    ]
+
+    if not published:
+        st.info("There are currently no published packages.")
+
+    for p in published:
+        package_preview(p)
+
+
+# =========================================================
+# PACKAGE DETAILS
+# =========================================================
+
+def package_page():
+
+    p = get_package(st.session_state.selected_package)
+
+    if not p:
+        st.warning("Package not found.")
         return
 
-    st.markdown('<div class="small-label">MADE FOR YOUR FAMILY</div>', unsafe_allow_html=True)
-    st.title(f"{profile['name']}'s Rhodes adventure 🌊")
+    if st.button("← Back to packages"):
+        go("Packages")
+
+    if p.get("image"):
+        st.image(p["image"], use_container_width=True)
+
+    st.markdown(
+        '<div class="eyebrow">COMPLETE RHODES PACKAGE</div>',
+        unsafe_allow_html=True
+    )
+
+    st.title(p["title"])
+    st.subheader(f"📍 {p['location']}")
+
+    st.write(p["description"])
+
+    a, b, c = st.columns(3)
+
+    with a:
+        st.metric("Nights", p["nights"])
+
+    with b:
+        st.metric("From", money(p["price"]))
+
+    with c:
+        st.metric("Available", p["spaces"])
+
+    st.subheader("Your holiday")
+
+    st.write(f"📅 **{p['start_date']} → {p['end_date']}**")
+    st.write(f"✈️ Departure airport: **{p['departure_airport']}**")
+    st.write(f"🏡 Accommodation: **{p['villa']}**")
+
+    if p.get("flights"):
+        st.write("✅ Return flights included")
+
+    if p.get("transfers"):
+        st.write("✅ Rhodes airport transfers included")
+
+    if p.get("breakfast"):
+        st.write("✅ Breakfast / welcome catering included")
 
     st.write(
-        "This is an example personalised itinerary. "
-        "The final plan would be reviewed and adapted with the family."
+        f"❤️ **{p.get('support_hours', 0)} hours** "
+        "of planned child/family support"
     )
 
-    st.markdown("""
-    ### Day 1 • Arrive gently
-    🚐 Private transfer to your accommodation
+    st.write(f"🎨 **Activities:** {p.get('activities', '')}")
 
-    🏡 Time to settle in with no planned activities
+    st.markdown("---")
 
-    🍽️ Familiar food options available
-
-    🌅 Quiet family evening
-    """)
-
-    st.markdown("""
-    ### Day 2 • Discover & play
-    🏊 Morning pool / swimming session
-
-    🎨 Personalised activity session
-
-    ☕ Parent free-time
-
-    👨‍👩‍👧 Family sunset activity
-    """)
-
-    st.markdown("""
-    ### Day 3 • Explore Rhodes
-    🏖️ Flexible beach morning
-
-    ❤️ Supported child activity
-
-    🌴 Parent time to explore, relax or eat out
-
-    🍽️ Family dinner
-    """)
-
-    if profile["interests"]:
-        st.success(
-            f"Activities will be shaped around: {profile['interests']}"
-        )
-
-    st.info(
-        f"Requested parent free-time: approximately "
-        f"{profile['parent_time']} hours across the holiday."
-    )
-
-    if st.button("Enquire about this holiday", type="primary"):
-        navigate("Enquiry")
-        st.rerun()
+    if p["spaces"] > 0:
+        if st.button(
+            "❤️ Enquire about this holiday",
+            type="primary",
+            use_container_width=True
+        ):
+            go("Enquiry")
+    else:
+        st.error("This package is currently sold out.")
 
 
 # =========================================================
@@ -787,56 +522,150 @@ def plan_page():
 
 def enquiry_page():
 
-    st.markdown('<div class="small-label">START YOUR HOLIDAY</div>', unsafe_allow_html=True)
-    st.title("Talk to ExploreAmore 💬")
+    p = get_package(st.session_state.selected_package)
 
-    villa = st.session_state.get(
-        "selected_villa",
-        "Help me choose"
+    if not p:
+        st.warning("Please choose a package first.")
+        return
+
+    st.markdown(
+        '<div class="eyebrow">START YOUR HOLIDAY</div>',
+        unsafe_allow_html=True
+    )
+
+    st.title(p["title"])
+    st.write(
+        "Tell ExploreAmore about your family. "
+        "This is an enquiry — no payment is taken here."
     )
 
     with st.form("holiday_enquiry"):
 
-        name = st.text_input("Your name")
+        name = st.text_input("Parent / carer name")
         email = st.text_input("Email")
-        phone = st.text_input("Phone / WhatsApp")
+        phone = st.text_input("Phone number")
 
-        st.text_input(
-            "Villa",
-            value=villa
+        c1, c2 = st.columns(2)
+
+        with c1:
+            adults = st.number_input(
+                "Adults", 1, 10, 2
+            )
+
+        with c2:
+            children = st.number_input(
+                "Children", 1, 10, 1
+            )
+
+        st.subheader("Tell us about your child / children")
+
+        communication = st.text_area(
+            "Communication preferences"
         )
 
-        airport = st.selectbox(
-            "Preferred UK airport",
-            [
-                "Manchester",
-                "Liverpool",
-                "Birmingham",
-                "London Gatwick",
-                "London Stansted",
-                "Other"
-            ]
+        sensory = st.text_area(
+            "Sensory needs or things they prefer to avoid"
         )
 
-        message = st.text_area(
-            "Anything else you'd like Nicola to know?"
+        interests = st.text_area(
+            "Favourite activities, interests and things they love"
+        )
+
+        food = st.text_area(
+            "Food preferences / allergies / dietary requirements"
+        )
+
+        routine = st.text_area(
+            "Routine, transitions or anything that helps them feel comfortable"
+        )
+
+        support = st.text_area(
+            "What would make this holiday easier for your family?"
         )
 
         submitted = st.form_submit_button(
-            "Send holiday enquiry",
-            type="primary"
+            "Send holiday enquiry ❤️",
+            type="primary",
+            use_container_width=True
         )
 
         if submitted:
 
             if not name or not email:
                 st.error("Please add your name and email.")
+
             else:
-                st.session_state.enquiry_sent = True
+                enquiry = {
+                    "id": int(datetime.now().timestamp()),
+                    "created": datetime.now().isoformat(),
+                    "package_id": p["id"],
+                    "package": p["title"],
+                    "name": name,
+                    "email": email,
+                    "phone": phone,
+                    "adults": adults,
+                    "children": children,
+                    "communication": communication,
+                    "sensory": sensory,
+                    "interests": interests,
+                    "food": food,
+                    "routine": routine,
+                    "support": support,
+                    "status": "New"
+                }
+
+                st.session_state.data["enquiries"].append(enquiry)
+                save_data(st.session_state.data)
+
                 st.success(
-                    "❤️ Enquiry received. In the live version this will "
-                    "appear in Nicola's dashboard automatically."
+                    "❤️ Enquiry sent. ExploreAmore can now contact "
+                    "the family about this package."
                 )
+
+
+# =========================================================
+# VILLAS
+# =========================================================
+
+def villas_page():
+
+    st.markdown(
+        '<div class="eyebrow">WHERE YOU COULD STAY</div>',
+        unsafe_allow_html=True
+    )
+
+    st.title("Rhodes stays 🏡")
+
+    st.write(
+        "Accommodation is attached to ExploreAmore packages rather "
+        "than leaving families to build the holiday themselves."
+    )
+
+    villas = {}
+
+    for p in st.session_state.data["packages"]:
+        if p.get("published"):
+            villas[p["villa"]] = p
+
+    for villa, p in villas.items():
+
+        st.markdown('<div class="package-card">', unsafe_allow_html=True)
+
+        if p.get("image"):
+            st.image(p["image"], use_container_width=True)
+
+        st.subheader(villa)
+        st.write(f"📍 {p['location']}")
+        st.write(f"Available through **{p['title']}**")
+
+        if st.button(
+            f"View {p['title']}",
+            key=f"villa_{p['id']}"
+        ):
+            st.session_state.selected_package = p["id"]
+            go("Package")
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =========================================================
@@ -845,228 +674,647 @@ def enquiry_page():
 
 def community_page():
 
-    st.markdown('<div class="small-label">REAL FAMILY EXPERIENCES</div>', unsafe_allow_html=True)
-    st.title("ExploreAmore Community ⭐")
-
-    st.write(
-        "Families can share experiences, tips and recommendations "
-        "to help other parents feel more confident about travelling."
+    st.markdown(
+        '<div class="eyebrow">EXPLOREAMORE COMMUNITY</div>',
+        unsafe_allow_html=True
     )
 
-    for review in st.session_state.reviews:
+    st.title("Families helping families ⭐")
 
-        stars = "★" * review["rating"]
+    approved = [
+        r for r in st.session_state.data["reviews"]
+        if r.get("approved")
+    ]
 
-        st.markdown(f"""
-        <div class="review">
-            <div class="stars">{stars}</div>
-            <h3>{review['name']}</h3>
-            <p>“{review['text']}”</p>
-        </div>
-        """, unsafe_allow_html=True)
+    for review in approved:
 
-    st.markdown("### Leave a review")
+        st.markdown('<div class="package-card">', unsafe_allow_html=True)
+
+        st.write("⭐" * int(review["rating"]))
+        st.subheader(review["name"])
+        st.write(review["text"])
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    st.subheader("Share your experience")
 
     with st.form("review_form"):
 
-        review_name = st.text_input(
-            "Name / family name"
-        )
+        name = st.text_input("Your name / family name")
+        rating = st.slider("Rating", 1, 5, 5)
+        text = st.text_area("Your review")
 
-        rating = st.select_slider(
-            "Rating",
-            options=[1, 2, 3, 4, 5],
-            value=5
-        )
+        if st.form_submit_button("Submit review"):
 
-        review_text = st.text_area(
-            "Share your experience"
-        )
+            if name and text:
 
-        add_review = st.form_submit_button(
-            "Post review"
-        )
-
-        if add_review and review_name and review_text:
-
-            st.session_state.reviews.insert(
-                0,
-                {
-                    "name": review_name,
+                st.session_state.data["reviews"].append({
+                    "name": name,
                     "rating": rating,
-                    "text": review_text
-                }
-            )
+                    "text": text,
+                    "approved": False
+                })
 
-            st.success("Review added ❤️")
-            st.rerun()
+                save_data(st.session_state.data)
+
+                st.success(
+                    "Thank you ❤️ Your review has been sent "
+                    "to ExploreAmore for approval."
+                )
 
 
 # =========================================================
-# NICOLA ADMIN
+# ADMIN LOGIN
+# =========================================================
+
+def admin_login():
+
+    st.markdown(
+        '<div class="eyebrow">PRIVATE AREA</div>',
+        unsafe_allow_html=True
+    )
+
+    st.title("🔐 Nicola's ExploreAmore")
+
+    st.write(
+        "This area controls the holidays customers see."
+    )
+
+    password = st.text_input(
+        "Admin password",
+        type="password"
+    )
+
+    if st.button(
+        "Open dashboard",
+        type="primary",
+        use_container_width=True
+    ):
+
+        # DEMO PASSWORD - change later
+        if password == "Rhodes2027!":
+            st.session_state.admin_logged_in = True
+            st.rerun()
+        else:
+            st.error("Incorrect password.")
+
+
+# =========================================================
+# ADMIN
 # =========================================================
 
 def admin_page():
 
-    st.markdown('<div class="small-label">BUSINESS AREA</div>', unsafe_allow_html=True)
-    st.title("Nicola's Dashboard 🔐")
-
-    st.warning(
-        "DEMO ADMIN AREA — we'll add proper secure login and a database "
-        "before this is used with real customer information."
-    )
-
-    password = st.text_input(
-        "Demo password",
-        type="password"
-    )
-
-    if password != "nicola":
-
-        st.info(
-            "For the prototype, enter: nicola"
-        )
-
+    if not st.session_state.admin_logged_in:
+        admin_login()
         return
 
-    st.success("Dashboard unlocked")
-
-    tab1, tab2, tab3, tab4 = st.tabs(
-        [
-            "🏡 Villas",
-            "🔥 Deals",
-            "📅 Availability",
-            "💬 Enquiries"
-        ]
+    st.markdown(
+        '<div class="eyebrow">EXPLOREAMORE CONTROL CENTRE</div>',
+        unsafe_allow_html=True
     )
+
+    st.title("Nicola's Dashboard 🔐")
+
+    c1, c2, c3 = st.columns(3)
+
+    c1.metric(
+        "Packages",
+        len(st.session_state.data["packages"])
+    )
+
+    c2.metric(
+        "New enquiries",
+        len([
+            e for e in st.session_state.data["enquiries"]
+            if e.get("status") == "New"
+        ])
+    )
+
+    c3.metric(
+        "Reviews waiting",
+        len([
+            r for r in st.session_state.data["reviews"]
+            if not r.get("approved")
+        ])
+    )
+
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "☀️ Packages",
+        "➕ New package",
+        "📩 Enquiries",
+        "⭐ Reviews"
+    ])
+
+
+    # -----------------------------------------------------
+    # EXISTING PACKAGES
+    # -----------------------------------------------------
 
     with tab1:
 
-        st.subheader("Add a villa")
+        st.subheader("Manage holiday packages")
 
-        villa_name = st.text_input(
-            "Villa name",
-            key="admin_villa_name"
-        )
+        if not st.session_state.data["packages"]:
+            st.info("No packages yet.")
 
-        villa_area = st.selectbox(
-            "Area",
-            [
-                "Lindos",
-                "Pefkos",
-                "Kolymbia",
-                "Faliraki",
-                "Rhodes Town",
-                "Other"
-            ],
-            key="admin_villa_area"
-        )
+        for p in list(st.session_state.data["packages"]):
 
-        villa_price = st.number_input(
-            "From price (£)",
-            min_value=0,
-            value=1800,
-            step=50
-        )
+            status = "🟢 LIVE" if p["published"] else "⚪ DRAFT"
 
-        st.text_area(
-            "Description",
-            key="admin_villa_description"
-        )
+            with st.expander(
+                f"{status} • {p['title']} • {money(p['price'])}"
+            ):
 
-        if st.button("Add villa"):
-            st.success(
-                f"{villa_name or 'New villa'} prepared for publishing. "
-                "Permanent saving comes when we connect the database."
-            )
+                title = st.text_input(
+                    "Package name",
+                    p["title"],
+                    key=f"title_{p['id']}"
+                )
+
+                location = st.text_input(
+                    "Rhodes location",
+                    p["location"],
+                    key=f"location_{p['id']}"
+                )
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    nights = st.number_input(
+                        "Nights",
+                        1,
+                        30,
+                        int(p["nights"]),
+                        key=f"nights_{p['id']}"
+                    )
+
+                    airport = st.text_input(
+                        "Departure airport",
+                        p["departure_airport"],
+                        key=f"airport_{p['id']}"
+                    )
+
+                    price = st.number_input(
+                        "Total family price (£)",
+                        min_value=0,
+                        value=int(p["price"]),
+                        step=50,
+                        key=f"price_{p['id']}"
+                    )
+
+                with col2:
+
+                    start = st.date_input(
+                        "Departure date",
+                        date.fromisoformat(p["start_date"]),
+                        key=f"start_{p['id']}"
+                    )
+
+                    end = st.date_input(
+                        "Return date",
+                        date.fromisoformat(p["end_date"]),
+                        key=f"end_{p['id']}"
+                    )
+
+                    spaces = st.number_input(
+                        "Packages available",
+                        min_value=0,
+                        value=int(p["spaces"]),
+                        key=f"spaces_{p['id']}"
+                    )
+
+                villa = st.text_input(
+                    "Villa / accommodation",
+                    p["villa"],
+                    key=f"villa_edit_{p['id']}"
+                )
+
+                image = st.text_input(
+                    "Main photo URL",
+                    p.get("image", ""),
+                    key=f"image_{p['id']}"
+                )
+
+                description = st.text_area(
+                    "Description",
+                    p["description"],
+                    key=f"description_{p['id']}"
+                )
+
+                activities = st.text_area(
+                    "Activities included",
+                    p.get("activities", ""),
+                    key=f"activities_{p['id']}"
+                )
+
+                support_hours = st.number_input(
+                    "Child/family support hours",
+                    min_value=0,
+                    value=int(p.get("support_hours", 0)),
+                    key=f"support_{p['id']}"
+                )
+
+                a, b, c = st.columns(3)
+
+                with a:
+                    flights = st.checkbox(
+                        "Flights included",
+                        p.get("flights", True),
+                        key=f"flights_{p['id']}"
+                    )
+
+                with b:
+                    transfers = st.checkbox(
+                        "Transfers included",
+                        p.get("transfers", True),
+                        key=f"transfers_{p['id']}"
+                    )
+
+                with c:
+                    breakfast = st.checkbox(
+                        "Breakfast included",
+                        p.get("breakfast", True),
+                        key=f"breakfast_{p['id']}"
+                    )
+
+                published = st.checkbox(
+                    "🟢 Published — customers can see this",
+                    p.get("published", False),
+                    key=f"published_{p['id']}"
+                )
+
+                featured = st.checkbox(
+                    "✨ Featured deal",
+                    p.get("featured", False),
+                    key=f"featured_{p['id']}"
+                )
+
+                save_col, delete_col = st.columns(2)
+
+                with save_col:
+
+                    if st.button(
+                        "💾 Save changes",
+                        key=f"save_{p['id']}",
+                        type="primary",
+                        use_container_width=True
+                    ):
+
+                        p.update({
+                            "title": title,
+                            "location": location,
+                            "nights": nights,
+                            "departure_airport": airport,
+                            "price": price,
+                            "start_date": start.isoformat(),
+                            "end_date": end.isoformat(),
+                            "spaces": spaces,
+                            "villa": villa,
+                            "image": image,
+                            "description": description,
+                            "activities": activities,
+                            "support_hours": support_hours,
+                            "flights": flights,
+                            "transfers": transfers,
+                            "breakfast": breakfast,
+                            "published": published,
+                            "featured": featured
+                        })
+
+                        save_data(st.session_state.data)
+                        st.success("Package updated ❤️")
+
+                with delete_col:
+
+                    if st.button(
+                        "🗑 Delete package",
+                        key=f"delete_{p['id']}",
+                        use_container_width=True
+                    ):
+
+                        st.session_state.data["packages"] = [
+                            x for x in st.session_state.data["packages"]
+                            if x["id"] != p["id"]
+                        ]
+
+                        save_data(st.session_state.data)
+                        st.rerun()
+
+
+    # -----------------------------------------------------
+    # CREATE PACKAGE
+    # -----------------------------------------------------
 
     with tab2:
 
-        st.subheader("Create a new deal")
+        st.subheader("Create a new Rhodes holiday")
 
-        deal_title = st.text_input(
-            "Deal title"
-        )
+        with st.form("new_package"):
 
-        deal_price = st.number_input(
-            "Price (£)",
-            min_value=0,
-            value=1895,
-            step=50,
-            key="deal_price"
-        )
-
-        deal_text = st.text_area(
-            "What's included?"
-        )
-
-        if st.button("Publish deal"):
-            st.success(
-                f"{deal_title or 'Deal'} preview created."
+            title = st.text_input(
+                "Package name",
+                placeholder="e.g. Lindos Summer Family Escape"
             )
+
+            location = st.text_input(
+                "Location",
+                value="Rhodes, Greece"
+            )
+
+            c1, c2 = st.columns(2)
+
+            with c1:
+
+                nights = st.number_input(
+                    "Nights",
+                    1,
+                    30,
+                    7
+                )
+
+                airport = st.text_input(
+                    "UK departure airport",
+                    value="Manchester"
+                )
+
+                start = st.date_input(
+                    "Departure date"
+                )
+
+                price = st.number_input(
+                    "Total package price (£)",
+                    min_value=0,
+                    value=2000,
+                    step=50
+                )
+
+            with c2:
+
+                villa = st.text_input(
+                    "Villa / accommodation"
+                )
+
+                end = st.date_input(
+                    "Return date"
+                )
+
+                spaces = st.number_input(
+                    "Number available",
+                    min_value=0,
+                    value=1
+                )
+
+                support_hours = st.number_input(
+                    "Support hours included",
+                    min_value=0,
+                    value=20
+                )
+
+            image = st.text_input(
+                "Main photo URL"
+            )
+
+            description = st.text_area(
+                "Package description"
+            )
+
+            activities = st.text_area(
+                "Activities included"
+            )
+
+            flights = st.checkbox(
+                "✈️ Flights included",
+                True
+            )
+
+            transfers = st.checkbox(
+                "🚐 Airport transfers included",
+                True
+            )
+
+            breakfast = st.checkbox(
+                "🍳 Breakfast / catering included",
+                True
+            )
+
+            featured = st.checkbox(
+                "✨ Feature this deal"
+            )
+
+            published = st.checkbox(
+                "🟢 Publish immediately"
+            )
+
+            create = st.form_submit_button(
+                "➕ Create holiday package",
+                type="primary",
+                use_container_width=True
+            )
+
+            if create:
+
+                if not title or not villa:
+                    st.error(
+                        "Add at least a package name and accommodation."
+                    )
+
+                else:
+
+                    new_package = {
+                        "id": int(datetime.now().timestamp()),
+                        "title": title,
+                        "location": location,
+                        "nights": nights,
+                        "departure_airport": airport,
+                        "start_date": start.isoformat(),
+                        "end_date": end.isoformat(),
+                        "villa": villa,
+                        "price": price,
+                        "spaces": spaces,
+                        "flights": flights,
+                        "transfers": transfers,
+                        "breakfast": breakfast,
+                        "support_hours": support_hours,
+                        "activities": activities,
+                        "description": description,
+                        "image": image,
+                        "featured": featured,
+                        "published": published
+                    }
+
+                    st.session_state.data["packages"].append(
+                        new_package
+                    )
+
+                    save_data(st.session_state.data)
+
+                    st.success(
+                        "☀️ Package created. "
+                        "If published, customers can now see it."
+                    )
+
+
+    # -----------------------------------------------------
+    # ENQUIRIES
+    # -----------------------------------------------------
 
     with tab3:
 
-        st.subheader("Villa availability")
+        st.subheader("Family enquiries")
 
-        st.date_input(
-            "Choose dates",
-            value=(
-                date.today() + timedelta(days=30),
-                date.today() + timedelta(days=37)
-            )
-        )
+        enquiries = st.session_state.data["enquiries"]
 
-        status = st.selectbox(
-            "Status",
-            [
-                "Available",
-                "Reserved",
-                "Booked",
-                "Unavailable"
-            ]
-        )
+        if not enquiries:
+            st.info("No enquiries yet.")
 
-        if st.button("Update availability"):
-            st.success(
-                f"Availability marked as {status} in the demo."
-            )
+        for enquiry in reversed(enquiries):
+
+            with st.expander(
+                f"📩 {enquiry['name']} • "
+                f"{enquiry['package']} • "
+                f"{enquiry['status']}"
+            ):
+
+                st.write(f"**Email:** {enquiry['email']}")
+                st.write(f"**Phone:** {enquiry['phone']}")
+
+                st.write(
+                    f"**Family:** {enquiry['adults']} adults • "
+                    f"{enquiry['children']} children"
+                )
+
+                st.markdown("---")
+
+                st.write(
+                    "**Communication:**",
+                    enquiry["communication"]
+                )
+
+                st.write(
+                    "**Sensory preferences:**",
+                    enquiry["sensory"]
+                )
+
+                st.write(
+                    "**Interests:**",
+                    enquiry["interests"]
+                )
+
+                st.write(
+                    "**Food:**",
+                    enquiry["food"]
+                )
+
+                st.write(
+                    "**Routine / transitions:**",
+                    enquiry["routine"]
+                )
+
+                st.write(
+                    "**Requested support:**",
+                    enquiry["support"]
+                )
+
+                statuses = [
+                    "New",
+                    "Contacted",
+                    "Quote sent",
+                    "Reserved",
+                    "Booked",
+                    "Closed"
+                ]
+
+                current = enquiry.get("status", "New")
+
+                new_status = st.selectbox(
+                    "Status",
+                    statuses,
+                    index=statuses.index(current)
+                    if current in statuses else 0,
+                    key=f"status_{enquiry['id']}"
+                )
+
+                if st.button(
+                    "Save enquiry status",
+                    key=f"enquiry_save_{enquiry['id']}"
+                ):
+
+                    enquiry["status"] = new_status
+                    save_data(st.session_state.data)
+                    st.success("Status updated.")
+
+
+    # -----------------------------------------------------
+    # REVIEWS
+    # -----------------------------------------------------
 
     with tab4:
 
-        st.subheader("Customer enquiries")
+        st.subheader("Community reviews")
 
-        st.info(
-            "New enquiries will appear here once we connect "
-            "ExploreAmore to its permanent database."
-        )
+        reviews = st.session_state.data["reviews"]
+
+        if not reviews:
+            st.info("No reviews yet.")
+
+        for i, review in enumerate(reviews):
+
+            status = (
+                "🟢 Published"
+                if review.get("approved")
+                else "🟠 Waiting approval"
+            )
+
+            with st.expander(
+                f"{status} • {review['name']}"
+            ):
+
+                st.write("⭐" * int(review["rating"]))
+                st.write(review["text"])
+
+                approved = st.checkbox(
+                    "Publish this review",
+                    review.get("approved", False),
+                    key=f"review_{i}"
+                )
+
+                if st.button(
+                    "Save review",
+                    key=f"review_save_{i}"
+                ):
+
+                    review["approved"] = approved
+                    save_data(st.session_state.data)
+                    st.success("Review updated.")
+
+    st.markdown("---")
+
+    if st.button("🔒 Log Nicola out"):
+        st.session_state.admin_logged_in = False
+        go("Home")
 
 
 # =========================================================
-# APP
+# ROUTER
 # =========================================================
-
-header()
 
 page = st.session_state.page
 
 if page == "Home":
     home_page()
 
-elif page == "Villas":
-    villas_page()
+elif page == "Packages":
+    packages_page()
 
-elif page == "Availability":
-    availability_page()
-
-elif page == "Family":
-    family_page()
-
-elif page == "Plan":
-    plan_page()
+elif page == "Package":
+    package_page()
 
 elif page == "Enquiry":
     enquiry_page()
+
+elif page == "Villas":
+    villas_page()
 
 elif page == "Community":
     community_page()
@@ -1074,11 +1322,21 @@ elif page == "Community":
 elif page == "Admin":
     admin_page()
 
-navigation()
+else:
+    home_page()
+
+
+# =========================================================
+# FOOTER
+# =========================================================
 
 st.markdown("---")
-
 st.caption(
     "ExploreAmore • Rhodes, Greece 🇬🇷 • "
-    "A family holiday concept built around individual needs."
+    "Family holidays designed around individual needs."
+)
+st.caption(
+    "*Prototype package information and pricing. "
+    "Live supplier availability, payment protection and booking "
+    "infrastructure must be connected before taking real bookings."
 )
